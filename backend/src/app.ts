@@ -2,6 +2,7 @@ import express from 'express';
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import authRoutes from './routes/auth.routes.js';
 
 dotenv.config();
 
@@ -18,5 +19,7 @@ app.get("/health", (req, res) => {
     message: "SupportAI backend running"
  });
 });
+
+app.use('/api/auth', authRoutes);
 
 export default app;
