@@ -1,6 +1,5 @@
 import {Request, Response} from 'express';
-import { createTicketService } from '../services/ticket.service.js';
-import { getTicketsService } from '../services/ticket.service.js';
+import { createTicketService, getTicketsService , getTicketsByIdService } from '../services/ticket.service.js';
 
 export const createTicket = async(req:Request, res:Response) => {
     try{
@@ -40,10 +39,37 @@ export const getTickets = async(req:Request, res:Response) => {
             })
         }
 
-        const tickets = await getTicketsService(userId);
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+        const tickets = await getTicketsService(userId, page, limit);
+
         return res.status(200).json({
             success: true,
             data: tickets
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+}
+
+export const getTicketById = async(req:Request, res:Response) => {
+    try{
+        const userId = req.user?.id;
+        if(!userId){
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized"     
+            })
+        }
+        const ticketId = req.params.id as string;
+        const result = await getTicketsByIdService(userId, ticketId);
+        return res.status(200).json({
+            success: true,
+            data: result
         });
     } catch (error: any) {
         return res.status(500).json({

@@ -39,7 +39,7 @@ enum TicketPriority {
 model Ticket {
   id              String   @id @default(cuid())
   title           String
-  description     String   @unique
+  description     String   
   status          TicketStatus    @default(OPEN)
   priority        TicketPriority  @default(MEDIUM)
   createdAt       DateTime @default(now())
