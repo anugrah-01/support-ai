@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import { createTicketService, getTicketsService , getTicketsByIdService } from '../services/ticket.service.js';
+import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService} from '../services/ticket.service.js';
 
 export const createTicket = async(req:Request, res:Response) => {
     try{
@@ -72,6 +72,58 @@ export const getTicketById = async(req:Request, res:Response) => {
             data: result
         });
     } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+}
+
+export const updateTicket = async(req:Request, res:Response) => {
+    try {
+        const userId = req.user?.id;
+        const ticketId = req.params.id as string;
+
+        if(!userId || !ticketId){
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized"     
+            })
+        }
+
+        const result = await updateTicketService(userId, ticketId, req.body);
+        return res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error:any) {
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+}
+
+export const deleteTicket = async(req:Request, res:Response) => {
+    try {
+        const userId = req.user?.id;
+        const ticketId = req.params.id as string;
+
+        if(!userId || !ticketId){
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized"     
+            })
+        }
+
+        const result = await deleteTicketService(userId, ticketId);
+        return res.status(200).json({
+            success: true,
+            "message": "Ticket deleted successfully"
+        });
+    } catch(error:any) {
         return res.status(500).json({
             success: false,
             message: "Internal Server Error",
