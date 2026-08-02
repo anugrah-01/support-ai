@@ -57,27 +57,20 @@ export const getTickets = async(req:Request, res:Response) => {
 }
 
 export const getTicketById = async(req:Request, res:Response) => {
-    try{
-        const userId = req.user?.id;
-        if(!userId){
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized"     
-            })
-        }
-        const ticketId = req.params.id as string;
-        const result = await getTicketsByIdService(userId, ticketId);
-        return res.status(200).json({
-            success: true,
-            data: result
-        });
-    } catch (error: any) {
-        return res.status(500).json({
+    
+    const userId = req.user?.id;
+    if(!userId){
+        return res.status(401).json({
             success: false,
-            message: "Internal Server Error",
-            error: error.message
-        });
+            message: "Unauthorized"     
+        })
     }
+    const ticketId = req.params.id as string;
+    const result = await getTicketsByIdService(userId, ticketId);
+    return res.status(200).json({
+        success: true,
+        data: result
+    });
 }
 
 export const updateTicket = async(req:Request, res:Response) => {

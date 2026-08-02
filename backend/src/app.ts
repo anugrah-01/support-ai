@@ -4,6 +4,7 @@ import morgan from "morgan";
 import dotenv from "dotenv";
 import authRoutes from './routes/auth.routes.js';
 import ticketRoutes from './routes/ticket.routes.js';
+import { errorHandler } from './middleware/error.middleware.js';
 
 dotenv.config();
 
@@ -23,5 +24,7 @@ app.get("/health", (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use("/api/tickets", ticketRoutes);
+
+app.use(errorHandler);
 
 export default app;

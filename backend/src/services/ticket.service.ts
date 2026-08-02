@@ -1,5 +1,6 @@
 import { TicketPriority, TicketStatus } from "@prisma/client/wasm";
 import prisma from "../config/prisma.js";
+import { AppError } from "../utils/AppError.js";
 
 type UpdateTicketData = {
     title?: string;
@@ -54,7 +55,7 @@ export const getTicketsByIdService = async(userId: string, ticketId: string) => 
     });
 
     if (!ticket) {
-        throw new Error("Ticket not found");
+        throw new AppError("Ticket not found", 404);
     }
 
     return ticket;
@@ -69,7 +70,7 @@ export const updateTicketService = async(userId: string, ticketId: string, data:
     });
 
     if (!ticket) {
-        throw new Error("Ticket not found");
+        throw new AppError("Ticket not found", 404);
     }
 
     const updatedTicket = await prisma.ticket.update({
@@ -90,7 +91,7 @@ export const deleteTicketService = async(userId: string, ticketId: string) => {
     });
 
     if (!ticket) {
-        throw new Error("Ticket not found");
+        throw new AppError("Ticket not found", 404);
     }
 
     const deletedTicket = await prisma.ticket.delete({
