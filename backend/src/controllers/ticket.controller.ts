@@ -1,5 +1,6 @@
 import {Request, Response} from 'express';
 import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService} from '../services/ticket.service.js';
+import { TicketStatus, TicketPriority } from '@prisma/client/index-browser';
 
 export const createTicket = async(req:Request, res:Response) => {
     try{
@@ -39,9 +40,10 @@ export const getTickets = async(req:Request, res:Response) => {
             })
         }
 
+        const {status, priority, search, sortBy, order} = req.query;
         const page = Math.max(1, Number(req.query.page) || 1);
         const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
-        const tickets = await getTicketsService(userId, page, limit);
+        const tickets = await getTicketsService(userId, page, limit, status as TicketStatus | undefined, priority as TicketPriority | undefined, search as string | undefined, sortBy as string | undefined, order as 'asc' | 'desc' | undefined);
 
         return res.status(200).json({
             success: true,
