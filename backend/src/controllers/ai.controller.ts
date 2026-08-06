@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { classifyTicket } from '../services/ai.service.js';
+import { analyzeTicket } from '../services/ai.service.js';
 
 export const aiTestController = async (req: Request, res: Response) => {
     try {
-        const result = await classifyTicket(
+        const result = await analyzeTicket(
             "Payment Failed",
             "Money deducted but order not placed."
         );

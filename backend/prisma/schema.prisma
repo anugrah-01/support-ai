@@ -41,6 +41,8 @@ model Ticket {
   title           String
   description     String   
   status          TicketStatus    @default(OPEN)
+  category        String?
+  summary         String?
   priority        TicketPriority  @default(MEDIUM)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

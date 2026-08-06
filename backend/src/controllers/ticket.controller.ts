@@ -1,6 +1,7 @@
 import {Request, Response} from 'express';
 import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService} from '../services/ticket.service.js';
 import { TicketStatus, TicketPriority } from '@prisma/client/index-browser';
+import { analyzeTicket } from '../services/ai.service.js';
 
 export const createTicket = async(req:Request, res:Response) => {
     try{
@@ -14,7 +15,17 @@ export const createTicket = async(req:Request, res:Response) => {
             })
         }
 
-        const ticket = await createTicketService({title, description, userId});
+        const aiResult = await analyzeTicket(title, description);
+        console.log("AI Result: ", aiResult);
+
+        const ticket = await createTicketService({
+            title,
+            description,
+            userId,
+            category: aiResult.category,
+            priority: aiResult.priority,
+            summary: aiResult.summary
+        });
         return res.status(201).json({
             success: true,
             data: ticket
