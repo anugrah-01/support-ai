@@ -10,7 +10,7 @@ type UpdateTicketData = {
     priority?: TicketPriority;
 };
 
-export const createTicketService = async({title, description, userId, category, priority, summary}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string}) => {
+export const createTicketService = async({title, description, userId, category, priority, summary, aiReply}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string, aiReply: string}) => {
     const ticket = await prisma.ticket.create({
         data: {
             title,
@@ -18,7 +18,8 @@ export const createTicketService = async({title, description, userId, category, 
             userId,
             category,
             priority,
-            summary
+            summary, 
+            aiReply
         }
     })
     return ticket;

@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { AppError } from "../utils/AppError.js";
+import { aiTicketSchema } from "../validation/ai.schema.js";
 
 const ai = new GoogleGenAI({                      //GoogleGenAI is a class that allows you to interact with the Google Generative AI API. It requires an API key to authenticate requests.
   apiKey: process.env.GEMINI_API_KEY || "",
@@ -82,11 +83,42 @@ export const analyzeTicket = async (title: string, description: string) => {
         contents: prompt,
     })
     const text = response.text;
-    const aiResponse = JSON.parse(text as string); //parse the text to JSON, because the AI response is a string, we need to parse it to JSON to access the category and priority.
+    const parsed = JSON.parse(text as string); //parse the text to JSON, because the AI response is a string, we need to parse it to JSON to access the category and priority.
+    const aiResponse = aiTicketSchema.parse(parsed); //validate the parsed response using zod schema, if the response is not valid, it will throw an error.
     console.log("aiResponse: ", aiResponse);
     return aiResponse;
     } catch (error) {
         console.error("Error in analyzeTicket: ", error);
         throw new AppError("Failed to analyze ticket", 500);
+    }
+};
+
+export const generateReply = async (category: string, priority: string, summary: string) => {
+    try{
+        const prompt = `You are a professional customer support agent. Generate a polite and empathetic response based on the following support ticket.
+        Category: ${category}
+        Priority: ${priority}
+        Summary: ${summary}
+        Instructions:
+        - Be professional and empathetic.
+        - Keep the reply under 150 words.
+        - Do not make false promises.
+        - Do not invent information.
+        - If the issue requires investigation, mention that it will be reviewed by the support team.
+        - Return only the reply text.`;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+        });
+        const text = response.text;
+        console.log("AI Response: ", text);
+        if (!text) {
+            throw new AppError("AI returned an empty response", 500);
+        }
+        return text;
+    } catch (error) {
+        console.error("Error in generateReply: ", error);
+        throw new AppError("Failed to generate reply", 500);
     }
 };
