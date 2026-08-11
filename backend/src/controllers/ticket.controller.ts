@@ -1,7 +1,7 @@
 import {Request, Response} from 'express';
 import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService} from '../services/ticket.service.js';
 import { TicketStatus, TicketPriority } from '@prisma/client/index-browser';
-import { analyzeTicket, generateReply } from '../services/ai.service.js';
+import { analyzeTicket } from '../services/ai.service.js';
 
 export const createTicket = async(req:Request, res:Response) => {
     try{
@@ -18,8 +18,8 @@ export const createTicket = async(req:Request, res:Response) => {
         const aiResult = await analyzeTicket(title, description);
         console.log("AI Result: ", aiResult);
 
-        const aiReply = await generateReply(aiResult.category, aiResult.priority, aiResult.summary);
-        console.log("aiReply:" +aiReply);
+        // const aiReply = await generateReply(aiResult.category, aiResult.priority, aiResult.summary);
+        // console.log("aiReply:" +aiReply);
 
         const ticket = await createTicketService({
             title,
@@ -28,7 +28,7 @@ export const createTicket = async(req:Request, res:Response) => {
             category: aiResult.category,
             priority: aiResult.priority,
             summary: aiResult.summary, 
-            aiReply
+            aiReply: aiResult.reply
         });
         return res.status(201).json({
             success: true,
@@ -102,7 +102,14 @@ export const updateTicket = async(req:Request, res:Response) => {
             })
         }
 
-        const result = await updateTicketService(userId, ticketId, req.body);
+        const aiResult = await analyzeTicket(req.body.title, req.body.description);
+
+        const result = await updateTicketService(userId, ticketId, req.body, {
+            category: aiResult.category,
+            priority: aiResult.priority,
+            summary: aiResult.summary,
+            aiReply: aiResult.reply
+        });
         return res.status(200).json({
             success: true,
             data: result

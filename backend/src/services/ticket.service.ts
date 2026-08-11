@@ -79,7 +79,7 @@ export const getTicketsByIdService = async(userId: string, ticketId: string) => 
     return ticket;
 }
 
-export const updateTicketService = async(userId: string, ticketId: string, data: UpdateTicketData) => {
+export const updateTicketService = async(userId: string, ticketId: string, data: UpdateTicketData, aiData?: {category: string, priority: TicketPriority, summary: string, aiReply: string}) => {
     const ticket = await prisma.ticket.findFirst({
         where: {
             id: ticketId,
@@ -95,7 +95,10 @@ export const updateTicketService = async(userId: string, ticketId: string, data:
         where: {
             id: ticketId
         },
-        data
+        data: {
+            ...data,
+            ...aiData
+        }
     });
     return updatedTicket;
 }

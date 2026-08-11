@@ -16,5 +16,6 @@ export const aiTicketSchema = z.object({
         "URGENT"
     ]),
 
-    summary: z.string().min(10)
+    summary: z.string().min(10),
+    reply: z.string().min(20)
 });
