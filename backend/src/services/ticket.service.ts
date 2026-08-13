@@ -2,6 +2,7 @@ import { TicketPriority, TicketStatus } from "@prisma/client/wasm";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import { Prisma } from "@prisma/client";
+import { generateReplyFromAnalysis } from "./ai.service.js";
 
 type UpdateTicketData = {
     title?: string;
@@ -42,9 +43,11 @@ export const getTicketsService = async(userId: string, page: number, limit: numb
         ] : undefined
     };
     const orderBy = sortBy ? { [sortBy]: order || 'asc' } : undefined;  //Default order is ascending if not specified
+    console.log("Counting tickets...");
     const totalCount = await prisma.ticket.count({
         where: where
     });
+    console.log("Total tickets found:", totalCount);
 
     const skip = (page - 1) * limit;
     const tickets = await prisma.ticket.findMany({
@@ -121,4 +124,27 @@ export const deleteTicketService = async(userId: string, ticketId: string) => {
         }
     });
     return deletedTicket;
+}
+
+export const regenerateReplyService = async(userId: string, ticketId: string) => {
+    const ticket = await prisma.ticket.findFirst({
+        where: {
+            id: ticketId,
+            userId
+        } 
+    });
+
+    if(!ticket) {
+        throw new AppError("Ticket not found", 404);
+    }
+    const regeneratedReply = await generateReplyFromAnalysis(ticket.category as string, ticket.priority, ticket.summary as string);
+    const updatedTicket = await prisma.ticket.update({
+        where: {
+            id: ticketId
+        },
+        data: {
+            aiReply: regeneratedReply
+        }
+    });
+    return updatedTicket;
 }

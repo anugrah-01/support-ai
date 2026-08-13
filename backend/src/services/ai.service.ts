@@ -105,32 +105,32 @@ export const analyzeTicket = async (title: string, description: string) => {
     }
 };
 
-// export const generateReply = async (category: string, priority: string, summary: string) => {
-//     try{
-//         const prompt = `You are a professional customer support agent. Generate a polite and empathetic response based on the following support ticket.
-//         Category: ${category}
-//         Priority: ${priority}
-//         Summary: ${summary}
-//         Instructions:
-//         - Be professional and empathetic.
-//         - Keep the reply under 150 words.
-//         - Do not make false promises.
-//         - Do not invent information.
-//         - If the issue requires investigation, mention that it will be reviewed by the support team.
-//         - Return only the reply text.`;
+export const generateReplyFromAnalysis = async (category: string, priority: string, summary: string) => {
+    try{
+        const prompt = `You are a professional customer support agent. Generate a polite and empathetic response based on the following support ticket.
+        Category: ${category}
+        Priority: ${priority}
+        Summary: ${summary}
+        Instructions:
+        - Be professional and empathetic.
+        - Keep the reply under 150 words.
+        - Do not make false promises.
+        - Do not invent information.
+        - If the issue requires investigation, mention that it will be reviewed by the support team.
+        - Return only the reply text.`;
 
-//         const response = await ai.models.generateContent({
-//             model: "gemini-3-flash-preview",
-//             contents: prompt,
-//         });
-//         const text = response.text;
-//         console.log("AI Response: ", text);
-//         if (!text) {
-//             throw new AppError("AI returned an empty response", 500);
-//         }
-//         return text;
-//     } catch (error) {
-//         console.error("Error in generateReply: ", error);
-//         throw new AppError("Failed to generate reply", 500);
-//     }
-// };
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+        });
+        const text = response.text;
+        console.log("AI Response: ", text);
+        if (!text) {
+            throw new AppError("AI returned an empty response", 500);
+        }
+        return text;
+    } catch (error) {
+        console.error("Error in generateReply: ", error);
+        throw new AppError("Failed to generate reply", 500);
+    }
+};
