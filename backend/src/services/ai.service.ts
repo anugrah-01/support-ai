@@ -1,10 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
+import { ai } from "../config/gemini.js";
 import { AppError } from "../utils/AppError.js";
 import { aiTicketSchema } from "../validation/ai.schema.js";
 
-const ai = new GoogleGenAI({                      //GoogleGenAI is a class that allows you to interact with the Google Generative AI API. It requires an API key to authenticate requests.
-  apiKey: process.env.GEMINI_API_KEY || "",
-});
 
 //we will not export the ai instance directly, instead we will create a function that will use the ai instance to generate text. This is because we want to keep the ai instance private and not expose it to other parts of the application.
 
