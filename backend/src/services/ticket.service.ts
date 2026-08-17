@@ -3,6 +3,7 @@ import prisma from "../config/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import { Prisma } from "@prisma/client";
 import { generateReplyFromAnalysis } from "./ai.service.js";
+import { generateEmbedding } from "../ai/embedding.js";
 
 type UpdateTicketData = {
     title?: string;
@@ -23,6 +24,13 @@ export const createTicketService = async({title, description, userId, category, 
             aiReply
         }
     })
+
+    const textToEmbed = `${title}\n${description}`;
+    const embedding = await generateEmbedding(textToEmbed);
+    console.log('embedding:' +embedding.length);
+
+    const vectorString = `[${embedding.join(",")}]`;
+    await prisma.$executeRaw `UPDATE "Ticket" SET "embedding" = ${vectorString}::vector WHERE "id" = ${ticket.id}`;
     return ticket;
 }
 
@@ -147,4 +155,44 @@ export const regenerateReplyService = async(userId: string, ticketId: string) =>
         }
     });
     return updatedTicket;
+}
+
+export const searchSimilarTickets = async (query:string) => {
+    const queryEmbedding = await generateEmbedding(query);
+    const vectorString = `[${queryEmbedding.join(",")}]`;
+
+    /*Calculate the cosine distance between this ticket's embedding and the user's query embedding and then order by distance
+    putting the smaller distance first.*/
+    const tickets = await prisma.$queryRaw `
+    SELECT id, title, description, "embedding" <=> ${vectorString} :: vector AS distance
+    FROM "Ticket" WHERE "embedding" IS NOT NULL
+    ORDER BY distance LIMIT 5`;
+
+    return tickets;
+}
+
+export const backfillTicketEmbeddings = async () => {
+    const tickets = await prisma.$queryRaw<
+        { id: string; title: string; description: string }[]
+    >`
+        SELECT id, title, description
+        FROM "Ticket"
+        WHERE "embedding" IS NULL
+    `;
+
+    console.log(`Tickets needing embeddings: ${tickets.length}`);
+
+    for(const ticket of tickets) {
+        const textToEmbed = `${ticket.title}\n${ticket.description}`
+        const embedding = await generateEmbedding(textToEmbed);
+
+        const vectorString = `[${embedding.join(",")}]`;
+        await prisma.$executeRaw 
+            `UPDATE "Ticket" SET 
+            "embedding" = ${vectorString}::vector 
+            WHERE "id" = ${ticket.id}`; 
+        
+        console.log(`Embedded ticket: ${ticket.id}`);
+        
+    }
 }

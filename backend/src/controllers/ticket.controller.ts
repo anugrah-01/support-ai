@@ -2,6 +2,7 @@ import {Request, Response} from 'express';
 import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService, regenerateReplyService} from '../services/ticket.service.js';
 import { TicketStatus, TicketPriority } from '@prisma/client/index-browser';
 import { analyzeTicket, generateReplyFromAnalysis } from '../services/ai.service.js';
+import { searchSimilarTickets } from '../services/ticket.service.js';
 import { error } from 'console';
 
 export const createTicket = async(req:Request, res:Response) => {
@@ -169,6 +170,31 @@ export const regenerateReply = async(req:Request, res:Response) => {
         });
 
     } catch(error:any) {
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+}
+
+export const searchTickets = async (req:Request, res:Response) => {
+    try {
+        const userId = req.user?.id;
+        const query = req.query.query;
+
+        if (!query || typeof query !== "string" || !query.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "invalid query"
+            })
+        }
+        const result = await searchSimilarTickets(query);
+        return res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error:any) {
         return res.status(500).json({
             success: false,
             message: "Internal Server Error",
