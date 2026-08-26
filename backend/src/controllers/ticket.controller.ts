@@ -180,7 +180,7 @@ export const regenerateReply = async(req:Request, res:Response) => {
 
 export const searchTickets = async (req:Request, res:Response) => {
     try {
-        const userId = req.user?.id;
+        const userId = req.user!.id;
         const query = req.query.query;
 
         if (!query || typeof query !== "string" || !query.trim()) {
@@ -189,7 +189,7 @@ export const searchTickets = async (req:Request, res:Response) => {
                 message: "invalid query"
             })
         }
-        const result = await searchSimilarTickets(query);
+        const result = await searchSimilarTickets(query, userId);
         return res.status(200).json({
             success: true,
             data: result

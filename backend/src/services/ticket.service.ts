@@ -157,19 +157,26 @@ export const regenerateReplyService = async(userId: string, ticketId: string) =>
     return updatedTicket;
 }
 
-export const searchSimilarTickets = async (query:string) => {
+export const searchSimilarTickets = async (query: string, userId: string) => {
     const queryEmbedding = await generateEmbedding(query);
     const vectorString = `[${queryEmbedding.join(",")}]`;
 
-    /*Calculate the cosine distance between this ticket's embedding and the user's query embedding and then order by distance
-    putting the smaller distance first.*/
-    const tickets = await prisma.$queryRaw `
-    SELECT id, title, description, "embedding" <=> ${vectorString} :: vector AS distance
-    FROM "Ticket" WHERE "embedding" IS NOT NULL
-    ORDER BY distance LIMIT 5`;
+    const tickets = await prisma.$queryRaw`
+        SELECT 
+            id,
+            title,
+            description,
+            1 - ("embedding" <=> ${vectorString}::vector) AS similarity
+        FROM "Ticket"
+        WHERE "embedding" IS NOT NULL
+          AND "userId" = ${userId}
+          AND ("embedding" <=> ${vectorString}::vector) <= 0.30
+        ORDER BY "embedding" <=> ${vectorString}::vector
+        LIMIT 5;
+    `;
 
     return tickets;
-}
+};
 
 export const backfillTicketEmbeddings = async () => {
     const tickets = await prisma.$queryRaw<
