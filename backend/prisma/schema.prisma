@@ -51,3 +51,13 @@ model Ticket {
   userId          String
   user            User    @relation(fields: [userId], references: [id])
 }
+
+model KnowledgeChunk {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  source    String?
+  embedding Unsupported("vector(3072)")?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
