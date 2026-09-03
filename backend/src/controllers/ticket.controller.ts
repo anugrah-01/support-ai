@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService, regenerateReplyService} from '../services/ticket.service.js';
+import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService, regenerateReplyService, searchKnowledge} from '../services/ticket.service.js';
 import { TicketStatus, TicketPriority } from '@prisma/client/index-browser';
 import { analyzeTicket, generateReplyFromAnalysis } from '../services/ai.service.js';
 import { searchSimilarTickets } from '../services/ticket.service.js';
@@ -202,3 +202,34 @@ export const searchTickets = async (req:Request, res:Response) => {
         });
     }
 }
+
+
+export const searchKnowledgeController = async (
+    req: Request,
+    res: Response
+) => {
+    try {
+        const query = req.query.query;
+
+        if (!query || typeof query !== "string" || !query.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "invalid query"
+            });
+        }
+
+        const result = await searchKnowledge(query);
+
+        return res.status(200).json({
+            success: true,
+            data: result
+        });
+
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            error: error.message
+        });
+    }
+};

@@ -203,3 +203,23 @@ export const backfillTicketEmbeddings = async () => {
         
     }
 }
+
+export const searchKnowledge = async (query: string) => {
+    const queryEmbedding = await generateEmbedding(query);
+    const vectorString = `[${queryEmbedding.join(",")}]`;
+
+    const chunks = await prisma.$queryRaw`
+        SELECT 
+            id,
+            title,
+            content,
+            source,
+            1 - ("embedding" <=> ${vectorString}::vector) AS similarity
+        FROM "KnowledgeChunk"
+        WHERE "embedding" IS NOT NULL
+          AND ("embedding" <=> ${vectorString}::vector) <= 0.40
+        ORDER BY "embedding" <=> ${vectorString}::vector
+        LIMIT 3;
+    `;
+    return chunks;
+}
