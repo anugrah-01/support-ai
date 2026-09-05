@@ -1,6 +1,7 @@
 import { ai } from "../config/gemini.js";
 import { AppError } from "../utils/AppError.js";
 import { aiTicketSchema } from "../validation/ai.schema.js";
+import { searchKnowledge } from "./ticket.service.js";
 
 
 //we will not export the ai instance directly, instead we will create a function that will use the ai instance to generate text. This is because we want to keep the ai instance private and not expose it to other parts of the application.
@@ -131,3 +132,40 @@ export const generateReplyFromAnalysis = async (category: string, priority: stri
         throw new AppError("Failed to generate reply", 500);
     }
 };
+
+export const generateSupportReply = async (query: string) => {
+    try {
+        const knowledgeChunks = await searchKnowledge(query);
+        // Further processing of knowledge chunks to generate a support reply
+        const knowledgeText = knowledgeChunks.map((chunk : any) => `Title: ${chunk.title}\nContent: ${chunk.content}`).join("\n");
+        const prompt = `You are a customer support assistant.
+                        Answer the customer's question using ONLY the company
+                        knowledge provided below.
+
+                        Do not invent policies, refund timelines, procedures,
+                        or other information that is not present in the knowledge.
+
+                        If the provided knowledge does not contain enough
+                        information to answer the question, say that the issue
+                        requires further assistance instead of making up an answer.
+
+                        Company Knowledge:
+                        ${knowledgeText}
+
+                        Customer Question:
+                        ${query}
+
+                        Write a concise, professional and helpful customer support response.`;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: prompt,
+        });
+
+        return response.text;
+
+    } catch (error) {
+        console.error("Error in generateSupportReply: ", error);
+        throw new AppError("Failed to generate support reply", 500);
+    }
+}

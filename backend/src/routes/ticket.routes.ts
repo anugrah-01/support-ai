@@ -1,6 +1,6 @@
 import express from 'express';
 import {authenticateToken} from '../middleware/auth.middleware.js';
-import { createTicket, getTickets, getTicketById, updateTicket, deleteTicket, regenerateReply, searchTickets, searchKnowledgeController } from '../controllers/ticket.controller.js';
+import { createTicket, getTickets, getTicketById, updateTicket, deleteTicket, regenerateReply, searchTickets, searchKnowledgeController, generateSupportReplyController } from '../controllers/ticket.controller.js';
 import { createTicketSchema } from '../validation/ticket.schema.js';
 import { validatorMiddleware } from '../middleware/validate.middleware.js';
 import { ticketQuerySchema } from '../validation/ticketQuery.schema.js';
@@ -11,6 +11,7 @@ router.post('/', authenticateToken, validatorMiddleware(createTicketSchema), cre
 router.get('/', authenticateToken,  validatorMiddleware(ticketQuerySchema, "query"), getTickets);
 router.get("/knowledge-search", authenticateToken, searchKnowledgeController);
 router.get("/search", authenticateToken, searchTickets);
+router.get("/generate-support-reply",authenticateToken, generateSupportReplyController);
 router.get("/:id", authenticateToken, getTicketById);
 router.patch("/:id", authenticateToken, updateTicket);
 router.delete("/:id", authenticateToken, deleteTicket);

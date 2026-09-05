@@ -12,6 +12,14 @@ type UpdateTicketData = {
     priority?: TicketPriority;
 };
 
+type KnowledgeSearchResult = {
+    id: string;
+    title: string;
+    content: string;
+    source: string | null;
+    similarity: number;
+};
+
 export const createTicketService = async({title, description, userId, category, priority, summary, aiReply}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string, aiReply: string}) => {
     const ticket = await prisma.ticket.create({
         data: {
@@ -208,7 +216,7 @@ export const searchKnowledge = async (query: string) => {
     const queryEmbedding = await generateEmbedding(query);
     const vectorString = `[${queryEmbedding.join(",")}]`;
 
-    const chunks = await prisma.$queryRaw`
+    const chunks = await prisma.$queryRaw<KnowledgeSearchResult[]>`
         SELECT 
             id,
             title,
