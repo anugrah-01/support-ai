@@ -49,7 +49,7 @@ import { searchKnowledge } from "./ticket.service.js";
 
 export const analyzeTicket = async (title: string, description: string) => {
     try {
-        const prompt = `You are a professional AI support assistant.Analyze the following support ticket and generate a professional customer support reply.
+        const prompt = `You are a professional AI support assistant.Analyze the following support ticket.
 
                     Title: ${title}
                     Description: ${description}

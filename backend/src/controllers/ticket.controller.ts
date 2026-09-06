@@ -30,7 +30,6 @@ export const createTicket = async(req:Request, res:Response) => {
             category: aiResult.category,
             priority: aiResult.priority,
             summary: aiResult.summary, 
-            aiReply: aiResult.reply
         });
         return res.status(201).json({
             success: true,

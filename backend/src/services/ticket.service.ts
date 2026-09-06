@@ -2,7 +2,7 @@ import { TicketPriority, TicketStatus } from "@prisma/client/wasm";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/AppError.js";
 import { Prisma } from "@prisma/client";
-import { generateReplyFromAnalysis } from "./ai.service.js";
+import { generateReplyFromAnalysis, generateSupportReply } from "./ai.service.js";
 import { generateEmbedding } from "../ai/embedding.js";
 
 type UpdateTicketData = {
@@ -20,7 +20,7 @@ type KnowledgeSearchResult = {
     similarity: number;
 };
 
-export const createTicketService = async({title, description, userId, category, priority, summary, aiReply}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string, aiReply: string}) => {
+export const createTicketService = async({title, description, userId, category, priority, summary}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string}) => {
     const ticket = await prisma.ticket.create({
         data: {
             title,
@@ -29,7 +29,6 @@ export const createTicketService = async({title, description, userId, category, 
             category,
             priority,
             summary, 
-            aiReply
         }
     })
 
@@ -37,9 +36,15 @@ export const createTicketService = async({title, description, userId, category, 
     const embedding = await generateEmbedding(textToEmbed);
     console.log('embedding:' +embedding.length);
 
+    const supportReply = await generateSupportReply(textToEmbed);
+
     const vectorString = `[${embedding.join(",")}]`;
     await prisma.$executeRaw `UPDATE "Ticket" SET "embedding" = ${vectorString}::vector WHERE "id" = ${ticket.id}`;
-    return ticket;
+    const updatedTicket = await prisma.ticket.update({where: 
+                            {id: ticket.id,},
+                            data: {aiReply: supportReply,},
+    });
+    return updatedTicket;
 }
 
 export const getTicketsService = async(userId: string, page: number, limit: number, status?: TicketStatus, priority?: TicketPriority, search?: string, sortBy?: string, order?: 'asc' | 'desc') => {
