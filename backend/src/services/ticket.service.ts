@@ -4,6 +4,7 @@ import { AppError } from "../utils/AppError.js";
 import { Prisma } from "@prisma/client";
 import { generateReplyFromAnalysis, generateSupportReply } from "./ai.service.js";
 import { generateEmbedding } from "../ai/embedding.js";
+import { ticketQueue } from "../queues/ticket.queue.js";
 
 type UpdateTicketData = {
     title?: string;
@@ -32,7 +33,20 @@ export const createTicketService = async({title, description, userId, category, 
         }
     })
 
-    const textToEmbed = `${title}\n${description}`;
+    await ticketQueue.add(
+        "process-ticket", {
+        ticketId: ticket.id,
+        },
+        {
+            attempts: 3,
+            backoff: {
+                type: "exponential",
+                delay: 2000,
+            },
+        }
+    );
+
+    /*const textToEmbed = `${title}\n${description}`;
     const embedding = await generateEmbedding(textToEmbed);
     console.log('embedding:' +embedding.length);
 
@@ -43,8 +57,8 @@ export const createTicketService = async({title, description, userId, category, 
     const updatedTicket = await prisma.ticket.update({where: 
                             {id: ticket.id,},
                             data: {aiReply: supportReply,},
-    });
-    return updatedTicket;
+    });*/
+    return ticket;
 }
 
 export const getTicketsService = async(userId: string, page: number, limit: number, status?: TicketStatus, priority?: TicketPriority, search?: string, sortBy?: string, order?: 'asc' | 'desc') => {
