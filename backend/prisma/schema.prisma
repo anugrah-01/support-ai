@@ -29,6 +29,13 @@ enum TicketStatus {
   CLOSED
 }
 
+enum AIStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum TicketPriority {
   LOW
   MEDIUM  
@@ -45,6 +52,8 @@ model Ticket {
   category        String?
   summary         String?
   aiReply         String?
+  aiStatus        AIStatus @default("PENDING")
+  aiError         String?
   priority        TicketPriority  @default(MEDIUM)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
