@@ -1,7 +1,7 @@
-import { TicketPriority, TicketStatus } from "@prisma/client/wasm";
+import { TicketPriority, TicketStatus } from "@prisma/client";
 import prisma from "../config/prisma.js";
 import { AppError } from "../utils/AppError.js";
-import { Prisma } from "@prisma/client";
+import { Prisma, AIStatus } from "@prisma/client";
 import { generateReplyFromAnalysis, generateSupportReply } from "./ai.service.js";
 import { generateEmbedding } from "../ai/embedding.js";
 import { ticketQueue } from "../queues/ticket.queue.js";
@@ -19,6 +19,16 @@ type KnowledgeSearchResult = {
     content: string;
     source: string | null;
     similarity: number;
+};
+
+type GetTicketsParams = {
+    userId: string;
+    page: number;
+    limit: number;
+    aiStatus?: AIStatus;
+    priority?: string;
+    category?: string;
+    status?: string;
 };
 
 export const createTicketService = async({title, description, userId, category, priority, summary}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string}) => {
@@ -61,14 +71,16 @@ export const createTicketService = async({title, description, userId, category, 
     return ticket;
 }
 
-export const getTicketsService = async(userId: string, page: number, limit: number, status?: TicketStatus, priority?: TicketPriority, search?: string, sortBy?: string, order?: 'asc' | 'desc') => {
+export const getTicketsService = async(userId: string, page: number, limit: number, aiStatus?: AIStatus, priority?: TicketPriority,status?: TicketStatus, category?: string, search?: string, sortBy: string = "createdAt", order: 'asc' | 'desc' = 'desc') => {
     const where = {
         userId,
-        status: status ? { equals: status } : undefined,
+        aiStatus: aiStatus ? { equals: aiStatus } : undefined,
         priority: priority ? { equals: priority } : undefined,
+        status: status? { equals: status }: undefined,
+        category: category ? { equals: category }: undefined,
         OR: search ? [                                             //OR condition to search in title or description
             { title: { contains: search,
-                mode : Prisma.QueryMode.insensitive                              //Case insensitive search, will match "ticket" and "Ticket"
+                mode : Prisma.QueryMode.insensitive                //Case insensitive search, will match "ticket" and "Ticket"
              } 
             },
             { description: { contains: search,
@@ -77,29 +89,51 @@ export const getTicketsService = async(userId: string, page: number, limit: numb
             }
         ] : undefined
     };
-    const orderBy = sortBy ? { [sortBy]: order || 'asc' } : undefined;  //Default order is ascending if not specified
-    console.log("Counting tickets...");
-    const totalCount = await prisma.ticket.count({
-        where: where
-    });
-    console.log("Total tickets found:", totalCount);
+    const allowedSortFields = ["createdAt", "updatedAt", "priority", "status", "category", "title",] as const;
+    type SortField = (typeof allowedSortFields)[number];
 
+    const safeSortBy: SortField = allowedSortFields.includes(sortBy as SortField) ? (sortBy as SortField) : "createdAt";
+    const orderBy: Prisma.TicketOrderByWithRelationInput = {[safeSortBy]: order,};     // Create an orderBy object with the safeSortBy field and order direction
     const skip = (page - 1) * limit;
-    const tickets = await prisma.ticket.findMany({
-        where: where,
-        skip,
-        take: limit, 
-        orderBy: orderBy
-    });
+
+    console.log("Counting tickets...");
+    const [totalCount, tickets] = await prisma.$transaction([
+        prisma.ticket.count({
+            where,
+        }),
+
+        prisma.ticket.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy,
+            select: {
+                id: true,
+                title: true,
+                description: true,
+                status: true,
+                category: true,
+                priority: true,
+                summary: true,
+                aiReply: true,
+                aiStatus: true,
+                aiError: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        }),
+    ]);
+
     
     const totalPages = Math.ceil(totalCount / limit);
     return {tickets, 
         pagination: {
-        totalTickets: totalCount,
-        totalPages,
-        currentPage: page,
-        limit
-    }};
+            totalTickets: totalCount,
+            totalPages,
+            currentPage: page,
+            limit,
+        },
+    };
 }
 
 export const getTicketsByIdService = async(userId: string, ticketId: string) => {
@@ -107,7 +141,21 @@ export const getTicketsByIdService = async(userId: string, ticketId: string) => 
         where: {
             id: ticketId, 
             userId
-        }
+        },
+        select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            category: true,
+            priority: true,
+            summary: true,
+            aiReply: true,
+            aiStatus: true,
+            aiError: true,
+            createdAt: true,
+            updatedAt: true,
+        },
     });
 
     if (!ticket) {
@@ -117,7 +165,7 @@ export const getTicketsByIdService = async(userId: string, ticketId: string) => 
     return ticket;
 }
 
-export const updateTicketService = async(userId: string, ticketId: string, data: UpdateTicketData, aiData?: {category: string, priority: TicketPriority, summary: string, aiReply: string}) => {
+export const updateTicketService = async(userId: string, ticketId: string, data: UpdateTicketData, aiData?: {category: string, priority: TicketPriority, summary: string}) => {
     const ticket = await prisma.ticket.findFirst({
         where: {
             id: ticketId,

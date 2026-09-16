@@ -52,7 +52,7 @@ model Ticket {
   category        String?
   summary         String?
   aiReply         String?
-  aiStatus        AIStatus @default("PENDING")
+  aiStatus        AIStatus @default(PENDING)
   aiError         String?
   priority        TicketPriority  @default(MEDIUM)
   createdAt       DateTime @default(now())
