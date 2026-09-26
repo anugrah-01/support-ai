@@ -5,6 +5,7 @@ import { Prisma, AIStatus } from "@prisma/client";
 import { generateReplyFromAnalysis, generateSupportReply } from "./ai.service.js";
 import { generateEmbedding } from "../ai/embedding.js";
 import { ticketQueue } from "../queues/ticket.queue.js";
+import { setCache, getCache, deleteCache, deleteTicketListCache } from "../utils/cache.js";
 
 type UpdateTicketData = {
     title?: string;
@@ -43,6 +44,8 @@ export const createTicketService = async({title, description, userId, category, 
         }
     })
 
+    await deleteTicketListCache(userId);    // Invalidate the ticket list cache for the user after creating a new ticket
+
     await ticketQueue.add(
         "process-ticket", {
         ticketId: ticket.id,
@@ -72,6 +75,15 @@ export const createTicketService = async({title, description, userId, category, 
 }
 
 export const getTicketsService = async(userId: string, page: number, limit: number, aiStatus?: AIStatus, priority?: TicketPriority,status?: TicketStatus, category?: string, search?: string, sortBy: string = "createdAt", order: 'asc' | 'desc' = 'desc') => {
+    const cacheKey = `tickets:${userId}:${page}:${limit}:${aiStatus || 'all'}:${priority || 'all'}:${status || 'all'}:${category || 'all'}:${search || 'all'}:${sortBy}:${order}`;
+    const cachedTickets = await getCache<{tickets: any[], pagination: {totalTickets: number, totalPages: number, currentPage: number, limit: number}}>(cacheKey);
+
+    if(cachedTickets) {
+        console.log("Cache HIT:", cacheKey);
+        return cachedTickets;
+    }
+    console.log("Cache MISS:", cacheKey);
+
     const where = {
         userId,
         aiStatus: aiStatus ? { equals: aiStatus } : undefined,
@@ -126,7 +138,7 @@ export const getTicketsService = async(userId: string, page: number, limit: numb
 
     
     const totalPages = Math.ceil(totalCount / limit);
-    return {tickets, 
+    const result = {tickets, 
         pagination: {
             totalTickets: totalCount,
             totalPages,
@@ -134,6 +146,8 @@ export const getTicketsService = async(userId: string, page: number, limit: numb
             limit,
         },
     };
+    await setCache(cacheKey, result, 60);    // Cache the result for 60 seconds
+    return result;
 }
 
 export const getTicketsByIdService = async(userId: string, ticketId: string) => {
@@ -186,6 +200,8 @@ export const updateTicketService = async(userId: string, ticketId: string, data:
             ...aiData
         }
     });
+
+    await deleteTicketListCache(userId);    // Invalidate the ticket list cache for the user after updating a ticket
     return updatedTicket;
 }
 
@@ -206,6 +222,8 @@ export const deleteTicketService = async(userId: string, ticketId: string) => {
             id: ticketId
         }
     });
+
+    await deleteTicketListCache(userId);    // Invalidate the ticket list cache for the user after deleting a ticket
     return deletedTicket;
 }
 
