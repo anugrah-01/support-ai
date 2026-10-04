@@ -59,6 +59,7 @@ model Ticket {
   updatedAt       DateTime @updatedAt
   userId          String
   user            User    @relation(fields: [userId], references: [id])
+  @@index         ([userId])
 }
 
 model KnowledgeChunk {
