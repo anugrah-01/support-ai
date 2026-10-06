@@ -1,5 +1,5 @@
 import {Request, Response} from 'express';
-import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService, regenerateReplyService, searchKnowledge} from '../services/ticket.service.js';
+import { createTicketService, getTicketsService , getTicketsByIdService, updateTicketService, deleteTicketService, regenerateReplyService, searchKnowledge, findTicketByIdempotencyKey} from '../services/ticket.service.js';
 import { AIStatus, TicketStatus, TicketPriority } from '@prisma/client';
 import { analyzeTicket, generateReplyFromAnalysis, generateSupportReply } from '../services/ai.service.js';
 import { searchSimilarTickets } from '../services/ticket.service.js';
@@ -9,11 +9,29 @@ export const createTicket = async(req:Request, res:Response) => {
         const {title, description} = req.body;
         const userId = req.user?.id;
 
+        const idempotencyKey = req.header("Idempotency-Key");
+
         if(!userId){
             return res.status(401).json({
                 success: false,
                 message: "Unauthorized"     
             })
+        }
+
+        if (!idempotencyKey) {
+            return res.status(400).json({
+                success: false,
+                message: "Idempotency-Key header is required",
+            });
+        }
+
+        const existingTicket = await findTicketByIdempotencyKey( idempotencyKey, userId);
+
+        if (existingTicket) {
+            return res.status(200).json({
+                success: true,
+                data: existingTicket,
+            });
         }
 
         const aiResult = await analyzeTicket(title, description);
@@ -26,6 +44,7 @@ export const createTicket = async(req:Request, res:Response) => {
             title,
             description,
             userId,
+            idempotencyKey,
             category: aiResult.category,
             priority: aiResult.priority,
             summary: aiResult.summary, 

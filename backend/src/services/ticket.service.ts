@@ -32,7 +32,7 @@ type GetTicketsParams = {
     status?: string;
 };
 
-export const createTicketService = async({title, description, userId, category, priority, summary}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string}) => {
+export const createTicketService = async({title, description, userId, category, priority, summary, idempotencyKey}: {title: string, description: string, userId: string, category: string, priority: TicketPriority, summary: string, idempotencyKey: string}) => {
     const ticket = await prisma.ticket.create({
         data: {
             title,
@@ -41,6 +41,7 @@ export const createTicketService = async({title, description, userId, category, 
             category,
             priority,
             summary, 
+            idempotencyKey,
         }
     })
 
@@ -316,3 +317,12 @@ export const searchKnowledge = async (query: string) => {
     `;
     return chunks;
 }
+
+export const findTicketByIdempotencyKey = async (idempotencyKey: string, userId: string) => {
+  return prisma.ticket.findFirst({
+    where: {
+      idempotencyKey,
+      userId,
+    },
+  });
+};
