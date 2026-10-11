@@ -23,6 +23,13 @@ app.get("/health", (req, res) => {
  });
 });
 
+app.get("/instance", (req, res) => {
+  res.json({
+    instance: process.env.INSTANCE_NAME || "default",
+    port: process.env.PORT || "3000",
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/ai", aiRoutes);
