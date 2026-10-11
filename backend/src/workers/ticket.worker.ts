@@ -4,7 +4,7 @@ import { generateEmbedding } from "../ai/embedding.js";
 import { generateSupportReply } from "../services/ai.service.js";
 import prisma from "../config/prisma.js";
 
-const worker = new Worker( "ticket-processing", 
+export const worker = new Worker( "ticket-processing", 
     async (job) => {
         console.log(`Processing job ${job.id} | Ticket ${job.data.ticketId} | Attempt ${job.attemptsMade + 1}`);
         const { ticketId } = job.data;
